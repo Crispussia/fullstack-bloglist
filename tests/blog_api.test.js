@@ -4,21 +4,38 @@ const helper = require('./test_helper')
 const app = require('../app')
 const api = supertest(app)
 const Blog = require('../models/blog')
+const bcrypt = require('bcrypt')
+const User = require('../models/user')
+let token
+let userCreated
 
+beforeAll(async () => {
+
+  const saltRounds = 10
+  const passwordHash = await bcrypt.hash('sekret', saltRounds)
+
+  const user = new User({username: 'cris', name: 'crispussia',passwordHash})
+
+  userCreated =  await user.save()
+  
+  const result =await api
+    .post('/api/login')
+    .send({
+      username: user.username,
+      password: 'sekret'
+    })
+  token = result.body.token
+})
 
 beforeEach(async () => {
   await Blog.deleteMany({})
   for (let blog of helper.initialBlogs) {
     let blogObject = new Blog(blog)
+    blogObject.user = userCreated.id
     await blogObject.save()
-  } 
-  /*const blogObjects = helper.initialBlogs
-    .map(blog => new Blog(blog))
-  const promiseArray = blogObjects.map(blog => blog.save())
-  await Promise.all(promiseArray)*/
-  
+  }
 })
-  
+console.log('yes',token) 
 
 describe('returning the blogs', () => {
 
@@ -26,12 +43,13 @@ describe('returning the blogs', () => {
     await api
       .get('/api/blogs')
       .expect(200)
+      .set('Authorization', `Bearer ${token}`)
       .expect('Content-Type', /application\/json/)
   }, 100000)
 })
 
 describe('returning the correct amount of blog', () => {
-  test('there are six blogs', async () => {
+  test(`there are ${helper.initialBlogs.length} blogs`, async () => {
     const response = await api.get('/api/blogs')
     expect(response.body).toHaveLength(helper.initialBlogs.length)
   }, 100000)
@@ -56,6 +74,7 @@ describe('add blog posts', () => {
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -78,12 +97,10 @@ describe('add blog posts without like', () => {
       author: 'Marko Anastasov, Jerome Petazzoni, Pablo Tom Zavalia',
       url: 'https://itbook.store/books/1001649073143'
     }
-    if(newBlog.likes===undefined){
-      newBlog.likes=0
-    }
-  
+   
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -100,14 +117,15 @@ describe('add blog posts without like', () => {
 
 describe('add blog posts without url or title', () => {
   test('adding blogpost without url or title returns 400', async () => {
-    const newPost = {
+    const newBlog = {
       author: 'Crispussia',
       likes: 6
     }
         
     await api
       .post('/api/blogs')
-      .send(newPost)
+      .set('Authorization', `Bearer ${token}`)
+      .send(newBlog)
       .expect(400)
         
     const blogAtEnd = await helper.blogsInDb()
@@ -123,6 +141,7 @@ describe('deletion of a blog', () => {
   
     await api
       .delete(`/api/blogs/${blogToDelete.id}`)
+      .set('Authorization', `Bearer ${token}`)
       .expect(204)
   
     const blogsAtEnd = await helper.blogsInDb()
@@ -147,6 +166,7 @@ describe('Update of a specific blog ', () => {
     const updateLikes = { likes: 15}
     await api
       .put(`/api/blogs/${blogUpdate.id}`)
+      .set('Authorization', `Bearer ${token}`)
       .send(updateLikes)
       .expect(200)
       .expect('Content-Type', /application\/json/)
@@ -161,6 +181,27 @@ describe('Update of a specific blog ', () => {
     expect(newLike).toBe(updateLikes.likes)
     
       
+   
+  })
+
+})
+
+describe('adding a blog fails if a token is not provided ', () => {
+  test('add blog only authorization', async () => {
+    
+    const newBlog = {
+      title: 'Developing Graphics Frameworks with Python and OpenGL',
+      author: 'Lee Stemkoski, Michael Pascale',
+      url: 'https://itbook.store/books/9781032021461',
+      likes: 0
+    }
+    const response = await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(401)
+      .expect('Content-Type', /application\/json/)
+ 
+    expect(response.body.error).toContain('token missing or invalid')
    
   })
 
