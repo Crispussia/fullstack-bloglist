@@ -2,8 +2,9 @@ POST  http://localhost:3003/api/blogs
 Content-Type: application/json
 
 {
-    "title": "HTML is easy ",
-    "author": "Cris",
-    "url": "https://blog.fr/",
-    "likes": 25
+    "title": "React patterns",
+    "author": "Michael Chan",
+    "url": "https://reactpatterns.com/",
+    "likes": 7,
+    "userId":"626850b13161f9555a6aa5f0"
 }

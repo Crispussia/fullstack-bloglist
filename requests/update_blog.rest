@@ -1,0 +1,9 @@
+PUT http://localhost:3003/api/blogs/6266f94d991b379e8bd2fbd3
+Content-Type: application/json
+
+{
+  "title": "First class tests",
+  "author": "Robert C. Martin",
+  "url": "http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html",
+  "likes": 5
+}
