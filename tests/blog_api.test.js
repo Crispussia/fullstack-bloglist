@@ -9,8 +9,8 @@ const User = require('../models/user')
 let token
 let userCreated
 
-beforeAll(async () => {
-
+beforeEach(async () => {
+  await User.deleteMany({})
   const saltRounds = 10
   const passwordHash = await bcrypt.hash('sekret', saltRounds)
 
@@ -25,9 +25,7 @@ beforeAll(async () => {
       password: 'sekret'
     })
   token = result.body.token
-})
 
-beforeEach(async () => {
   await Blog.deleteMany({})
   for (let blog of helper.initialBlogs) {
     let blogObject = new Blog(blog)
@@ -35,6 +33,8 @@ beforeEach(async () => {
     await blogObject.save()
   }
 })
+
+
 console.log('yes',token) 
 
 describe('returning the blogs', () => {
