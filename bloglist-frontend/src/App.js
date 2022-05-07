@@ -77,19 +77,27 @@ const App = () => {
     setBlogs(blogs.map(blog => blog.id !== id ? blog: newBlog).sort((blog1, blog) => blog.likes-blog1.likes))
   }
 
-  const addBlog = (blogObject) => {
+  const addBlog = async (blogObject) => {
 
     try {
       blogFormRef.current.toggleVisibility()
       blogService.create(blogObject)
         .then(returnedBlog => {
-          setBlogs(blogs.concat(returnedBlog ))
+          if(returnedBlog.error){
+            setErrorMessage(returnedBlog.error)
+            setTimeout(() => {
+              setErrorMessage(null)
+            }, 5000)
+          }else{
+            setBlogs(blogs.concat(returnedBlog ))
+            setSuccessMessage(`a new blog added: ${blogObject.title} by ${blogObject.author}`)
+            setTimeout(() => {
+              setSuccessMessage(null)
+            }, 5000)
+
+          }
         })
 
-      setSuccessMessage(`a new blog added: ${blogObject.title} by ${blogObject.author}`)
-      setTimeout(() => {
-        setSuccessMessage(null)
-      }, 5000)
 
 
     } catch (error) {
@@ -150,6 +158,8 @@ const App = () => {
     <div>
       <h2>blogs</h2>
       <SuccessNotification message={successMessage}/>
+      <ErrorNotification message={errorMessage}/>
+
       <div>
         <p>{user.name} logged in  <button id="logout" onClick={handleLogout}>Logout</button></p>
         <Togglable buttonLabel="new blog" ref={blogFormRef}>
